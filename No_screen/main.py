@@ -4,7 +4,7 @@ import time
 
 # --- NFC/SPI Setup ---
 spi = SPI(0,
-          baudrate=1152000,
+          baudrate=115200,
           polarity=0,
           phase=0,
           bits=8,

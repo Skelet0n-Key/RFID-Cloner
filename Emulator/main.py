@@ -15,7 +15,7 @@ oled = SSD1306_I2C(WIDTH, HEIGHT, i2c)
 
 # --- NFC/SPI Setup ---
 spi = SPI(0,
-          baudrate=1152000,
+          baudrate=115200,
           polarity=0,
           phase=0,
           bits=8,
@@ -29,8 +29,8 @@ cs.value(1)
 rst = Pin(20, Pin.OUT)
 rst.value(1)
 # IRQ pin is not used in this library's polling mode
-# irq = Pin(15, Pin.IN) 
-irq = None # Set to None
+# irq = Pin(15, Pin.IN)
+irq = None  # Set to None
 # Initialize GPIO pins for the buttons.
 # We are using internal pull-ups, so the buttons should be wired
 # to connect the pin to ground when pressed.
@@ -40,9 +40,8 @@ down_button = Pin(5, Pin.IN, Pin.PULL_UP)
 
 
 # menus
-mainMenu = [" ", "Mifare Classic", "NTAG", "Clear Saved", " "]
-mifareMenu = [" ", "..", "Mifare Read", "Write current", "Save current", "Load from saved", " "]
-ntagMenu = [" ", "..", "NTAG read", "Write current", "Save current", "Load from saved", " "]
+mainMenu = [" ", "Read UID", "Write UID", "Delete saved", " "]
+writeMenu = [" ", "..", "Load Mifare", "Load NTAG", "Mifare write", "NTAG write", " "]
 
 # saved data
 MIFARE_FILE = "saved_mifare.json"
@@ -63,6 +62,7 @@ currentMenu = mainMenu
 currentOptionIndex = 1
 driverSelection = None
 
+
 def calculate_bcc(uid_bytes):
     """
     Calculates the BCC (XOR checksum) for a 4-byte MIFARE UID.
@@ -77,7 +77,7 @@ def calculate_bcc(uid_bytes):
 
 def read_source_card_data(dev, timeout_ms=5000):
     """
-    Waits for a source card, authenticates block 0, validates its BCC, 
+    Waits for a source card, authenticates block 0, validates its BCC,
     and reads the 16-byte block.
     Returns the 16 bytes of block 0, or None if it fails.
     """
@@ -98,7 +98,7 @@ def read_source_card_data(dev, timeout_ms=5000):
         print('CARD NOT FOUND')
         oled_print("CARD NOT FOUND", clear=True)
         return None
-        
+
     uid_string = "".join(["{:02X}".format(i) for i in uid])
     print(f"Found source card with UID: {uid_string}")
     oled_print(f"Found:\n{uid_string}", clear=True)
@@ -112,13 +112,13 @@ def read_source_card_data(dev, timeout_ms=5000):
         print("Note: Card must use the default key FF FF FF FF FF FF for this to work.")
         oled_print("Authentication\nfailed!", clear=True)
         return None
-    
+
     print("Authentication successful.")
     oled_print("Authentication\nsuccessful!", clear=True)
-    
+
     # Read block 0
     block0_data = dev.mifare_classic_read_block(0)
-    
+
     if not block0_data:
         print("Failed to read block 0.")
         oled_print("Read Block 0\nfailed!", clear=True)
@@ -134,9 +134,9 @@ def read_source_card_data(dev, timeout_ms=5000):
     oled_print("Validating\nsource card BCC...", clear=True)
     card_uid_part = block0_data[0:4]
     card_bcc_part = block0_data[4]
-    
+
     calculated_bcc = calculate_bcc(card_uid_part)
-    
+
     if card_bcc_part == calculated_bcc:
         print(f"BCC is valid! (Read: 0x{card_bcc_part:02X}, Calculated: 0x{calculated_bcc:02X})")
         oled_print("BCC VALIDATION\nSUCCESS!", clear=True)
@@ -185,7 +185,7 @@ def write_data_to_clone(dev, block_data, timeout_ms=10000):
 
     # For "Gen2" or "lab 401" cards, we can try a normal authentication
     # and then a standard write command to block 0.
-    
+
     print("Attempting to authenticate target card...")
     # authenticate with the card's current key.
     # For a blank/new magic card, this is often the default key.
@@ -194,10 +194,10 @@ def write_data_to_clone(dev, block_data, timeout_ms=10000):
         oled_print("Authentication\nfailed!", clear=True)
         time.sleep(1.5)
         return
-        
+
     print("Target card authenticated. Attempting to write to Block 0...")
     oled_print("Writing to\nBlock 0...", clear=True)
-    
+
     # Now, try to write the saved block 0 data
     if dev.mifare_classic_write_block(0, block_data):
         print("SUCCESS! Block 0 written.")
@@ -209,26 +209,27 @@ def write_data_to_clone(dev, block_data, timeout_ms=10000):
     else:
         print("Error: Failed to write to block 0.")
         oled_print("Write FAILED!", clear=True)
-        time.sleep(1.5) 
+        time.sleep(1.5)
         return
 
 
 def driver_select(selection):
     global saved_block_0
-    if selection == 0: #scan mifare classic
+    if selection == 0:  # scan mifare classic
         scanned_data = read_source_card_data(pn532)
-    
+
         if scanned_data:
-            saved_block_0 = scanned_data # Save the 16-byte block
+            saved_block_0 = scanned_data  # Save the 16-byte block
             print("Block 0 data saved.")
             oled_print("Scan successful!\nData saved.", clear=True)
             time.sleep(1.5)
         else:
             print("Scan failed. No data was saved.")
-            oled_print("Scan failed.\nNo data saved.", clear=True)  
+            oled_print("Scan failed.\nNo data saved.", clear=True)
+            return 1
             time.sleep(1.5)
 
-    elif selection == 1:#write mifare classic
+    elif selection == 1:  # write mifare classic
         print("Writing saved Block 0 data to target card...")
         if saved_block_0 is None:
             print("Error: No data has been saved from a source card.")
@@ -240,13 +241,13 @@ def driver_select(selection):
             oled_print(f"Writing data:\n{data_string}", clear=True)
             write_data_to_clone(pn532, saved_block_0)
 
-    elif selection == 2: #save current mifare classic TODO
+    elif selection == 2:  # save current mifare classic TODO
         oled_print("Saving current\nMIFARE UID...", clear=True)
         time.sleep(0.5)
         savedUIDsMifare.append(saved_block_0)
-        save_list_to_file(savedUIDsMifare, MIFARE_FILE) 
+        save_list_to_file(savedUIDsMifare, MIFARE_FILE)
 
-    elif selection== 3: #display saved mifare classic uids TODO
+    elif selection == 3:  # display saved mifare classic uids TODO
         oled_print("Loading saved\nMIFARE UIDs...", clear=True)
         time.sleep(0.5)
         savedUIDsMifare = load_list_from_file(MIFARE_FILE)
@@ -255,24 +256,25 @@ def driver_select(selection):
             print(f"{index + 1}: {data_string}")
             oled_print(f"{index + 1}: {data_string}")
 
-    elif selection == 4: 
+    elif selection == 4:
         oled_print("NTAG read not\nimplemented", clear=True)
         time.sleep(1.5)
 
-        
-    elif selection == 5: 
+    elif selection == 5:
         oled_print("NTAG write not\nimplemented", clear=True)
         time.sleep(1.5)
 
-    elif selection == 6: 
+    elif selection == 6:
         oled_print("Save current to\nNTAG list not\nimplemented", clear=True)
         time.sleep(1.5)
 
-    elif selection == 7: 
+    elif selection == 7:
         oled_print("Display saved\nNTAG UIDs not\nimplemented", clear=True)
         time.sleep(1.5)
 
-    else: pass  # no action
+    else:
+        pass  # no action
+
 
 # --- Save function ---
 def save_list_to_file(data_list, filename):
@@ -284,8 +286,9 @@ def save_list_to_file(data_list, filename):
     except Exception as e:
         print("Error saving file:", e)
         oled_print("Error saving file", clear=True)
-    
+
     return
+
 
 # --- Load function ---
 def load_list_from_file(filename):
@@ -298,21 +301,23 @@ def load_list_from_file(filename):
         print("Error loading file:", e)
         oled_print("Error loading file", clear=True)
         return []
-    
-# --- Clear saved function ---    
+
+
+# --- Clear saved function ---
 def clear_saved_list(list_variable, filename):
     # Clear the in-memory list
     list_variable.clear()
-    
+
     # Overwrite the JSON file with an empty list
     try:
         with open(filename, "w") as f:
             ujson.dump([], f)
         print(f"Cleared {filename} and emptied the list.")
-        oled_print(f"Cleared saved\nitems!", clear=True)
+        oled_print("Cleared saved\nitems!", clear=True)
     except Exception as e:
         print("Error clearing saved file:", e)
         oled_print("Error clearing\nsaved items!", clear=True)
+
 
 def oled_print(*args, sep=" ", end="\n", clear=True):
     """
@@ -335,6 +340,7 @@ def oled_print(*args, sep=" ", end="\n", clear=True):
 
     oled.show()
 
+
 def printMenu(menu, index):
     # Clamp the index inside valid range
     if index <= 0:
@@ -351,10 +357,10 @@ def printMenu(menu, index):
 
     return index
 
+
 # initialize
 currentMenu = mainMenu
 currentOptionIndex = 1
-driverSelection = None
 
 printMenu(currentMenu, currentOptionIndex)
 
@@ -375,51 +381,29 @@ while True:
     elif sel_button.value() == 0:  # select
         time.sleep(0.2)  # Debounce delay
         if currentMenu == mainMenu:
-            if currentOptionIndex == 1:  # Mifare Classic
-                currentMenu = mifareMenu
-                currentOptionIndex = 2
-            elif currentOptionIndex == 2:  # NTAG
-                currentMenu = ntagMenu
+            if currentOptionIndex == 1:
+                if driver_select(0) == 1:  # read mifare, check for fail
+                    driver_select(4)  # read ntag
+            elif currentOptionIndex == 2:
+                currentMenu = writeMenu
                 currentOptionIndex = 2
             elif currentOptionIndex == 3:  # Clear Saved
                 clear_saved_list(savedUIDsMifare, MIFARE_FILE)
                 clear_saved_list(savedUIDsNTAG, NTAG_FILE)
             currentOptionIndex = printMenu(currentMenu, currentOptionIndex)
 
-        elif currentMenu == mifareMenu:
+        elif currentMenu == writeMenu:
             if currentOptionIndex == 1:  # go back
                 currentMenu = mainMenu
                 currentOptionIndex = 1
-                driverSelection = None
-            elif currentOptionIndex == 2:
-                driverSelection = 0
-            elif currentOptionIndex == 3:
-                driverSelection = 1
-            elif currentOptionIndex == 4:
-                driverSelection = 2
-            elif currentOptionIndex == 5:
-                driverSelection = 3
-            if driverSelection is not None:
-                driver_select(driverSelection)
-                driverSelection = None
-            currentOptionIndex = printMenu(currentMenu, currentOptionIndex)
-
-        elif currentMenu == ntagMenu:
-            if currentOptionIndex == 1: #go back
-                currentMenu = mainMenu
-                currentOptionIndex = 1
-                driverSelection = None
-            elif currentOptionIndex == 2:
-                driverSelection = 4
-            elif currentOptionIndex == 3:
-                driverSelection = 5
-            elif currentOptionIndex == 4:
-                driverSelection = 6
-            elif currentOptionIndex == 5:
-                driverSelection = 7
-            if driverSelection is not None:
-                driver_select(driverSelection)
-                driverSelection = None
+            elif currentOptionIndex == 2:  # load Mifare UID
+                driver_select(3)
+            elif currentOptionIndex == 3:  # load NTAG UID
+                driver_select(7)
+            elif currentOptionIndex == 4:  # write mifare
+                driver_select(1)
+            elif currentOptionIndex == 5:  # write ntag
+                driver_select(5)
             currentOptionIndex = printMenu(currentMenu, currentOptionIndex)
 
     else:
