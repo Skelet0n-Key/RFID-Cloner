@@ -3,7 +3,6 @@ import NFC_PN532 as nfc
 from ssd1306 import SSD1306_I2C
 import time
 import ujson
-import os
 
 # ==== I2C setup ====
 i2c = I2C(1, scl=Pin(3), sda=Pin(2))  # I2C1 uses GP2 (SDA) and GP3 (SCL)
@@ -213,8 +212,30 @@ def write_data_to_clone(dev, block_data, timeout_ms=10000):
         return
 
 
+def read_ntag_uid(timeout_ms=5000):
+    """
+    Wait for an NTAG / ISO14443A card and return its UID (bytes).
+    Returns None if no card detected within timeout.
+    """
+    print("Waiting for NTAG card...")
+
+    start = time.ticks_ms()
+    while True:
+        uid = pn532.read_passive_target(timeout=100)
+        if uid:
+            print("Card detected!")
+            print("UID:", [hex(x) for x in uid])
+            return bytes(uid)
+
+        # timeout check
+        if time.ticks_diff(time.ticks_ms(), start) > timeout_ms:
+            return None
+
+        time.sleep(0.05)
+
+
 def driver_select(selection):
-    global saved_block_0
+    global savedUIDsMifare, savedUIDsNTAG, saved_block_0
     if selection == 0:  # scan mifare classic
         scanned_data = read_source_card_data(pn532)
 
@@ -223,6 +244,10 @@ def driver_select(selection):
             print("Block 0 data saved.")
             oled_print("Scan successful!\nData saved.", clear=True)
             time.sleep(1.5)
+            oled_print("Saving current\nMIFARE UID...", clear=True)
+            time.sleep(0.5)
+            savedUIDsMifare.append(saved_block_0)
+            save_list_to_file(savedUIDsMifare, MIFARE_FILE)
         else:
             print("Scan failed. No data was saved.")
             oled_print("Scan failed.\nNo data saved.", clear=True)
@@ -241,12 +266,6 @@ def driver_select(selection):
             oled_print(f"Writing data:\n{data_string}", clear=True)
             write_data_to_clone(pn532, saved_block_0)
 
-    elif selection == 2:  # save current mifare classic TODO
-        oled_print("Saving current\nMIFARE UID...", clear=True)
-        time.sleep(0.5)
-        savedUIDsMifare.append(saved_block_0)
-        save_list_to_file(savedUIDsMifare, MIFARE_FILE)
-
     elif selection == 3:  # display saved mifare classic uids TODO
         oled_print("Loading saved\nMIFARE UIDs...", clear=True)
         time.sleep(0.5)
@@ -256,19 +275,25 @@ def driver_select(selection):
             print(f"{index + 1}: {data_string}")
             oled_print(f"{index + 1}: {data_string}")
 
-    elif selection == 4:
-        oled_print("NTAG read not\nimplemented", clear=True)
+    elif selection == 4:  # scan ntag
+        ntag_uid = read_ntag_uid()
+
+        if ntag_uid is None:
+            oled_print("No NTAG card detected.")
+        else:
+            saved_block_0 = ntag_uid
+            oled_print("UID saved to variable `uid`:", ntag_uid)
         time.sleep(1.5)
 
-    elif selection == 5:
+    elif selection == 5:  # write ntag
         oled_print("NTAG write not\nimplemented", clear=True)
         time.sleep(1.5)
 
-    elif selection == 6:
+    elif selection == 6:  # save ntag (will go under scan ntag)
         oled_print("Save current to\nNTAG list not\nimplemented", clear=True)
         time.sleep(1.5)
 
-    elif selection == 7:
+    elif selection == 7:  # display ntag uids
         oled_print("Display saved\nNTAG UIDs not\nimplemented", clear=True)
         time.sleep(1.5)
 
