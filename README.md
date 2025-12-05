@@ -78,7 +78,6 @@ This device is capable of reading both MiFare classic and NTAG card UIDs, saving
 
 
 *RFID Lock*
-*Diagram Here*
 
 | Arduino Uno | MFRC-522 |
 |:----|:----|
@@ -91,12 +90,13 @@ This device is capable of reading both MiFare classic and NTAG card UIDs, saving
 | D13 | SCK |
 | N/A | IRQ |
 
+![](Media/rfid_lock.png)
+
 We also used two indicator LEDs on D2 and D4 so we didn't have to look at the terminal everytime to see if access was granted / denied. 
 
 ## CAD Files
 
-We used a few prints to bring this project together and give it a more prolished look. You can find them [here]()
-(link)
+We used a few prints to bring this project together and give it a more prolished look. You can find them [here](CAD_files/)
 
 # Acknowledgements
 We used Carglglz's [driver](https://github.com/Carglglz/NFC_PN532_SPI) to control the basic functions of the PN532, such as initialization and reading mifare classics.
