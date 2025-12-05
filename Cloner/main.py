@@ -9,7 +9,7 @@ i2c = I2C(1, scl=Pin(3), sda=Pin(2))  # I2C1 uses GP2 (SDA) and GP3 (SCL)
 
 # ==== OLED setup ====
 WIDTH = 128
-HEIGHT = 32  # most 0.91" displays are 128x32
+HEIGHT = 32
 oled = SSD1306_I2C(WIDTH, HEIGHT, i2c)
 
 # --- NFC/SPI Setup ---
@@ -187,7 +187,6 @@ def write_data_to_clone(dev, block_data, timeout_ms=10000):
 
     print("Attempting to authenticate target card...")
     # authenticate with the card's current key.
-    # For a blank/new magic card, this is often the default key.
     if not dev.mifare_classic_authenticate_block(target_uid, 0, nfc.MIFARE_CMD_AUTH_B, nfc.KEY_DEFAULT_B):
         print("Failed to authenticate target card with default key.")
         oled_print("Authentication\nfailed!", clear=True)
@@ -223,7 +222,6 @@ def read_ntag_uid(timeout_ms=5000):
     while True:
         uid = pn532.read_passive_target(timeout=100)
         if uid:
-            print("Card detected!")
             print("UID:", [hex(x) for x in uid])
             return bytes(uid)
 
@@ -284,19 +282,6 @@ def driver_select(selection):
             saved_block_0 = ntag_uid
             oled_print("UID saved to variable `uid`:", ntag_uid)
         time.sleep(1.5)
-
-    elif selection == 5:  # write ntag
-        oled_print("NTAG write not\nimplemented", clear=True)
-        time.sleep(1.5)
-
-    elif selection == 6:  # save ntag (will go under scan ntag)
-        oled_print("Save current to\nNTAG list not\nimplemented", clear=True)
-        time.sleep(1.5)
-
-    elif selection == 7:  # display ntag uids
-        oled_print("Display saved\nNTAG UIDs not\nimplemented", clear=True)
-        time.sleep(1.5)
-
     else:
         pass  # no action
 
@@ -360,7 +345,7 @@ def oled_print(*args, sep=" ", end="\n", clear=True):
     for line in lines:
         if y > HEIGHT - 8:
             break  # stop if screen full
-        oled.text(line[:21], 0, y)  # each char ≈6px wide → fits ~21 chars
+        oled.text(line[:21], 0, y)
         y += 8
 
     oled.show()
