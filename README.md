@@ -4,6 +4,8 @@
 
 The standard PN532 is widely available and cheap. Manufacturers prevent custom UIDs from being emulated. When the 532 is put into target mode, the first byte of the UID will always be 0x08 (or 0x88 with some models). While there are ways to get around this security feature, it is difficult to implement in an embedded system, unreliable, and requires perfect timing (read more about it [here](https://www.mankier.com/1/nfc-emulate-uid)). The other solution is trivially easy to implement. Rather than go with the true emulation method, we picked up a [lab401 sector 0 programmable card](https://lab401.com/collections/all-products/products/mifare-compatible-1k-direct-write-uid). This method absolves adafruit of all legal liability, which is exactly the reason that firmware feature implementing a hardware protocol requirement (prepending a 0x08 byte) exists. Conveniently, this makes our design more discreet. 
 
+![Emulator](Media/emulator.jpeg)
+
 **Challenges and Solutions**
 
 - We wanted a controlled environment to test our project's functionality and so that's what we did. We made an RFID lock with an arduino uno and MFRC-522 module (code found [here](RFID_lock/RFID_lock.ino)). The lock came with it's own problems. It took a while to find out what was going on, but we weren't getting any response from our MFRC-522 because it wasn't an official module. We needed to slow down communication to our module and connect it to 5V even though 3.3V was printed on the PCB. *Note: we labeled it 3.3V-3.3V in the wiring diagram*
