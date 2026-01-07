@@ -2,7 +2,9 @@
 
 **Introduction**
 
-The standard PN532 is widely available and cheap. Manufacturers prevent custom UIDs from being emulated. When the 532 is put into target mode, the first byte of the UID will always be 0x08 (or 0x88 with some models). While there are ways to get around this security feature, it is difficult to implement in an embedded system, unreliable, and requires perfect timing (read more about it [here](https://www.mankier.com/1/nfc-emulate-uid)). The other solution is trivially easy to implement. Rather than go with the true emulation method, we picked up a [lab401 sector 0 programmable card](https://lab401.com/collections/all-products/products/mifare-compatible-1k-direct-write-uid). This method absolves adafruit of all legal liability, which is exactly the reason that firmware feature implementing a hardware protocol requirement (prepending a 0x08 byte) exists. Conveniently, this makes our design more discreet. 
+This project aims to use a typical PN532 to skim the UID off of a MiFare/NFC keycard to be able to gain access to whatever place the keycard unlocked. Many commercial locks only use the UID of the keycard to be unlocked.
+
+The standard PN532 is widely available and cheap. Manufacturers prevent custom UIDs from being emulated because so many locks only read the UID. When the 532 is put into target mode, the first byte of the UID will always be 0x08 (or 0x88 with some models). While there are ways to get around this security feature, it is difficult to implement in an embedded system, unreliable, and requires perfect timing (read more about it [here](https://www.mankier.com/1/nfc-emulate-uid)). The other solution is trivially easy to implement. Rather than go with the true emulation method, we picked up a [lab401 sector 0 programmable card](https://lab401.com/collections/all-products/products/mifare-compatible-1k-direct-write-uid). This method absolves adafruit of all legal liability, which is exactly the reason that firmware feature implementing a hardware protocol requirement (prepending a 0x08 byte) exists. Conveniently, this makes our design more discreet. 
 
 ![Emulator](Media/emulator.jpeg)
 
