@@ -6,7 +6,9 @@ This project aims to use a typical PN532 to skim the UID off of a MiFare/NFC key
 
 The standard PN532 is widely available and cheap. Manufacturers prevent custom UIDs from being emulated because so many locks only read the UID. When the 532 is put into target mode, the first byte of the UID will always be 0x08 (or 0x88 with some models). While there are ways to get around this security feature, it is difficult to implement in an embedded system, unreliable, and requires perfect timing (read more about it [here](https://www.mankier.com/1/nfc-emulate-uid)). The other solution is trivially easy to implement. Rather than go with the true emulation method, we picked up a [lab401 sector 0 programmable card](https://lab401.com/collections/all-products/products/mifare-compatible-1k-direct-write-uid). This method absolves adafruit of all legal liability, which is exactly the reason that firmware feature implementing a hardware protocol requirement (prepending a 0x08 byte) exists. Conveniently, this makes our design more discreet. 
 
-![Emulator](Media/emulator.jpeg)
+<p align="center">
+ <img src="Media/emulator.jpeg" alt="emulator" width="400"/>
+</p>
 
 **Challenges and Solutions**
 
@@ -94,7 +96,7 @@ This device is capable of reading both MiFare classic and NTAG card UIDs, saving
 | D13 | SCK |
 | N/A | IRQ |
 
-![](Media/rfid_lock.png)
+<img src="Media/rfid_lock.png" alt="rfid_lock" width="700"/>
 
 We also used two indicator LEDs on D2 and D4 so we didn't have to look at the terminal everytime to see if access was granted / denied. 
 
